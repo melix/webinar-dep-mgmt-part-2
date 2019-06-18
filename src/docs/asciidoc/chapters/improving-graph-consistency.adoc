@@ -1,0 +1,208 @@
+[background-color="#01303a"]
+== Improving graph consistency
+
+=== The challenge?
+
+* Dependencies do not work in isolation
+** Most projects will use more than a couple
+** Having a consistent set of dependencies is a different problem than having the _right_ dependency at the _right_ version
+* Organizations may want to
+** Share information on recommended dependencies, including versions and rejections
+** Control available dependencies and their origin
+
+=== Multiple options available
+
+* Repository content filtering
+* Bill Of Materials (BOM) / Recommendation platforms
+* Alignment of library modules
+* and more
+
+[background-color="#01303a"]
+== Repository content filtering
+
+=== Modules live in repositories
+
+* Identified by _group_, _name_ and _version_ (e.g. `org.slf4j:slf4j-api:1.7.2`)
+* Consists of artifacts  (e.g. `.jar`) and metadata (https://blog.gradle.org/gradle-metadata-1.0[`.module`], `.pom` or `ivy.xml`)
+* Repositories are visited sequentially
+
+=== Content filtering
+
+* Gives control to where dependencies can be sourced from
+* Improves the reproducibility aspect
+* Has security implications as well
+
+```groovy
+repositories {
+    maven {
+        url = 'https://repo.company.com/'
+        content {
+            includeGroupByRegex​ "my\\.company.*"
+        }
+    }
+    jcenter() {
+         content {
+             excludeGroup "org.slf4j"
+             excludeGroupByRegex​ "my\\.company.*"
+         }
+    }
+}
+```
+
+[background-color="#01303a"]
+== Bill Of Materials support in Gradle
+
+=== What is a Maven BOM?
+
+* Defines versions for dependencies (and more)
+* Used for obtaining a consistent set of versions
+** For modules composing a library, that work better together at the same version
+** For heterogeneous modules that form an ecosystem
+* Allows to omit versions in the build file that imports it
+
+http://repo.maven.apache.org/maven2/org/springframework/boot/spring-boot-dependencies/2.1.6.RELEASE/spring-boot-dependencies-2.1.6.RELEASE.pom[Example]
+
+=== Importing a BOM in Gradle
+
+```groovy
+dependencies {
+    implementation(
+        platform(
+            'org.springframework.boot:spring-boot-dependencies:2.1.6.RELEASE'
+        )
+    )
+}
+```
+
+=== Particularities in Gradle
+
+* BOM dependency declarations are imported as _constraints_
+* BOMs are like regular dependencies, they can be visible by consumers
+** When declared in `api` for example
+* Gradle _always_ considers _all_ versions in a dependency graph
+
+This creates an important difference with application of BOMs in Maven:
+
+WARNING: _In Gradle, the transitive dependency graph can still resolve a dependency with a different version than specified in the BOM._
+
+=== Enforced BOMs
+
+```groovy
+dependencies {
+    implementation(
+        enforcedPlatform(
+            'org.springframework.boot:spring-boot-dependencies:2.1.6.RELEASE'
+        )
+    )
+}
+```
+
+Will result in constraints that _force_ versions instead of participating in version conflict resolution.
+
+If you have consumers, you should not use this.
+
+=== Replacement of Spring dependency management plugin
+
+* ✅ for most use cases
+* Unsupported scenarios:
+** If you want to override properties defined in the BOM to have a different set of constraints
+** Local dependency declaration causing a downgrade
+
+=== Recommendation platforms in Gradle
+
+* By using the `java-platform` plugin
+* Full feature set requires Gradle Module Metadata publication
+* Will translate to a Maven BOM for the most part
+** ⚠️ In Maven order matters, so order in your Gradle build file matters if you need the compatibility
+
+=== Recommendation platform example
+
+```groovy
+plugins {
+  `java-platform`
+}
+
+javaPlatform {
+    allowDependencies()
+}
+
+dependencies {
+  constraints {
+      runtime('org.postgresql:postgresql:42.2.6')
+  }
+  api(platform('com.fasterxml.jackson:jackson-bom:2.9.9'))
+  api(platform('org.springframework.boot:spring-boot-dependencies:2.1.5.RELEASE'))
+}
+```
+
+[background-color="#01303a"]
+== Aligning a group of dependencies
+
+=== What is the problem?
+
+* A group of dependencies are designed to work together.
+** Think `jackson` or even the Spring framework
+* Through transitive dependency updates, modules end up having different versions
+
+So the goal would be to have the tools to make sure that _any_ upgrade of _any_ module would cause the whole set to upgrade its version.
+
+[background-color="#01303a"]
+=== Demo
+
+=== Virtual platforms for published libraries
+
+. Name a virtual platform module
+. Enhance library modules metadata to declare they `belongsTo` the platform
+. The platform collects the modules that belongs to it
+** When `jackson-dataformat-yaml` says it belongs to the platform, _all platform versions_ now point to it as well
+. Alignment!
+
+=== Usability details
+
+* A virtual platform can only align to a version it sees in the graph
+* A virtual platform will _attempt_ alignment on all modules
+
+=== Attempted alignment example
+
+* `com.fasterxml.jackson.core:jackson-databind:2.8.8.1` ✅
+* `com.fasterxml.jackson.core:jackson-core:2.8.8.1` ❌
+* The platform will align modules existing in `2.8.8.1` to that version,
+* Other modules will have the highest _lower_ version that exists for them
+** Saw `2.8.8.1`, `2.8.8`, ... then others most likely in `2.8.8`
+** Saw `2.8.8.1`, `2.7.8`, ... then others mostl likely in `2.7.8`
+
+=== Can I leverage an existing BOM?
+
+* Yes, _but_
+** You still need the `belongsTo`
+** Alignment will be according to the BOM definitions
+
+=== Using a Gradle platform for alignment
+
+* Leverages the ability to declare the cycle in Gradle
+* A platform depends on all the modules
+* Each modules depends on the platform
+* Requires Gradle Module Metadata to be fully functional
+
+=== Alignment platform
+
+```groovy
+plugins {
+  `java-platform`
+}
+
+dependencies {
+    constraints {
+        api(project(':common'))
+        api(project(':server'))
+        api(project(':client'))
+    }
+}
+```
+For the projects:
+```groovy
+dependencies {
+    api(project(':platform'))
+}
+```
+

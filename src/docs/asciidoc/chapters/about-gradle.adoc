@@ -1,0 +1,13 @@
+[background-color="#01303a"]
+== Recap Webinar 'Dependency Resolution 1'
+
+// TODO add a short recap
+
+
+== Overview of Webinar 'Dependency Resolution 2'
+// TODO One slide per main topic (?)
+//   - Sharing verions that work together
+//      - platform, alignment
+//   - conflict (version, multi implementation, ...)
+//   - substiting (external with local, ...)
+//   - ...

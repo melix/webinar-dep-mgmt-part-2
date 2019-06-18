@@ -1,0 +1,16 @@
+
+Transitive dependencies
+
+- I don't need a transitive because I only use part of a library (valid exclude)
+- Conflicting logging framework implementation (do not use exclude, but capabilities)
+
+
+Platforms
+
+- Using Bills-of-Material to share versions (existing BOM example)
+- Defining platforms for local projects (multi-project with platform)
+- Aligning dependencies (virtual platform, example Jackson)
+- Aligning dependencies (local platform)
+
+Dynamic versioning / Locking
+- You have dynamic versions (example with open version range)

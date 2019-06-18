@@ -1,0 +1,164 @@
+[background-color="#01303a"]
+==  Declaring and Analyzing Dependencies in Gradle
+
+Including a quick recap of
+
+https://gradle.com/blog/dependency-management-fundamentals[Dependency Management with Gradle Part 1 – Fundamentals]
+
+=== Gradle Build Tool
+// summary of 'repositories.adoc'
+Build and automation tool with rich _dependency management_ functionality
+
+* JVM based and implemented in Java
+* 100% Free Open Source - Apache Standard License 2.0
+* Agnostic build tool (Java, Groovy, Kotlin, Scala, Android, C, C++, Swift, ...)
+
+[source,kotlin]
+----
+plugins {
+    `java-library`
+}
+repositories {
+    mavenCentral()
+}
+dependencies {
+    implementation("org.slf4j:slf4j-api:1.7.2")
+}
+----
+
+=== Build Scans and Gradle Enterprise
+
+* Run build with `--scan` to create a private scan on https://scans.gradle.com[scans.gradle.com]
+* https://gradle.com[Gradle Enterprise] (commercial product) can be installed on premises
+
+image::scans/scan-general.png[width=100%, height=100%]
+
+=== Modules live in Repositories
+
+* Identified by _group_, _name_ and _version_ (e.g. `org.slf4j:slf4j-api:1.7.2`)
+* Consists of artifacts  (e.g. `.jar`) and metadata (https://blog.gradle.org/gradle-metadata-1.0[`.module`], `.pom` or `ivy.xml`)
+* Repositories are visited sequentially
+
+=== Inspecting dependencies
+
+By default transitive dependencies are brought in
+
+[source,kotlin]
+----
+dependencies {
+    implementation("org.apache.httpcomponents:httpclient:4.5.9")
+}
+----
+
+Show dependency graph:
+
+`gradle dependencies --configuration compileClasspath`
+
+[source,yaml]
+----
+compileClasspath - Compile classpath for source set 'main'.
+\--- org.apache.httpcomponents:httpclient:4.5.9
+     +--- org.apache.httpcomponents:httpcore:4.4.11
+     +--- commons-logging:commons-logging:1.2
+     \--- commons-codec:commons-codec:1.11
+----
+
+=== Focusing on a dependency
+
+Show path to a dependency:
+[source,bash]
+----
+gradle dependencyInsight
+             --configuration compileClasspath
+             --dependency codec
+----
+
+Result:
+[source,yaml]
+----
+...
+commons-codec:commons-codec:1.11
+\--- org.apache.httpcomponents:httpclient:4.5.9
+     \--- compileClasspath
+...
+----
+
+=== Inspect dependencies in build scan
+
+https://scans.gradle.com[scans.gradle.com] (`--scan`) or _Gradle Enterprise_ provide a dependency inspector
+
+image::scans/scan-httpclient.png[width=100%, height=100%]
+
+=== Dependency constraints
+// summary of 'controlling-dependency-versions.adoc' (part 2)
+
+* Introduce additional constraints on versions
+* **Does not** override versions of transitive dependencies
+
+[source,groovy]
+----
+dependencies {
+    constraints {
+        implementation("org.slf4j:slf4j-api:1.7.26")
+        implementation("org.apache:commons-lang3:3.3.0")
+    }
+    dependencies {
+        implementation("org.slf4j:slf4j-api") // no version
+    }
+}
+----
+
+=== Rich dependency versions
+// summary of 'controlling-dependency-versions.adoc' (part 1)
+
+* Work also with dependency constraints
+* **Does not** override versions of transitive dependencies
+
+[source,groovy]
+----
+dependencies {
+   implementation("info.picocli:picocli") {
+       version {
+          strictly("[3.9, 4.0[")
+          prefer("3.9.5")
+       }
+       because("Provides command-line argument parsing")
+   }
+}
+----
+
+=== Platforms to share versions
+// summary of 'structuring.adoc'
+
+.platform/build.gradle.kts
+[source,kotlin]
+----
+plugins {
+   `java-platform`
+}
+
+dependencies {
+    constraints {
+       api("org.slf4j:slf4j-api:1.7.26")
+       runtime("org.slf4j:slf4j-simple:1.7.26")
+    }
+}
+----
+
+.cli/build.gradle.kts
+[source,kotlin]
+----
+dependencies {
+   api(platform(project(":platform")))
+
+   implementation("org.slf4j:slf4j-api") // <-- no version here
+}
+----
+
+=== Semantics and dependencies
+
+Gradle has a strong modelling of dependencies:
+
+* Semantic difference between compilation and runtime
+* Semantic difference between building a library and building _against_ a library
+* Ability for a module to produce more than one variant

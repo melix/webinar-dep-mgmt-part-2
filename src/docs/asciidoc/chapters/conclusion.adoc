@@ -1,0 +1,24 @@
+[background-color="#01303a"]
+== Conclusion
+
+=== Tools for a complex world
+
+* Real world projects _will_ face dependency conflicts
+* Gradle provides tools to _model_ conflicts
+** not all conflicts are equal (version, implementation, ...)
+** better modeling -> better decisions
+* Sometimes a _hammer_ is an acceptable solution
+
+We're adding tooling to cover more cases!
+
+=== Coming next
+
+Focus on publishing and the importance of Gradle Module Metadata
+
+* Publishing components
+* Maven and Ivy compatibility
+* Published capabilities
+* Published alignment
+* Feature variants
+* Test fixtures
+

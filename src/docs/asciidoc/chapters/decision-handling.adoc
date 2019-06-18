@@ -1,0 +1,16 @@
+[background-color="#01303a"]
+== Transitive version conflict and consequences
+
+=== Understanding the consequences of decisions
+
+* 2 categories of consumers
+** libraries: can be _consumed_, including transitively
+** applications: at the end of the chain
+
+=== Understanding the consequences of decisions
+
+* Wrong decisions on libraries affect the whole chain
+** e.g: excluding a dependency
+** e.g: forcing a version
+** e.g: adding a constraint
+** e.g: using ranges

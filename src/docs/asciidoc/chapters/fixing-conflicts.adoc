@@ -1,0 +1,60 @@
+[background-color="#01303a"]
+=== Demo
+
+=== When metadata is wrong
+
+* Sometimes metadata of a module is simply _wrong_
+** "hard" dependency when it should be optional
+** dependency on broken version
+** missing dependencies
+** ...
+
+=== Component metadata rules
+
+* Allow fixing metadata
+* Applied to _all configurations_ (unconditionally true)
+
+=== e.g: https://issues.apache.org/jira/browse/CAMEL-9300[DeltaSpike container control dependency in Camel CDI should be optional]
+
+```kotlin
+include::../../../../demos/conflicts/buildSrc/src/main/kotlin/bad-metadata.kt[tags=rule]
+```
+
+=== Handling mutually exclusive modules
+
+* A _capability_ describes a feature that is mutually exclusive
+* All components provide their GAV as a capability by default
+
+=== The famous logging problem
+
+* Slf4j and is bridging / replacement modules
+* `log4j` vs. `slf4j-log4j12` vs. `log4j-over-slf4j`
+* And similarly for `java.util.logging`
+* And again for `commons-logging`
+
+=== Relocated libraries
+
+* `asm:asm` now known as `org.ow2.asm:asm`
+* `junit:junit-dep` and `junit:junit`
+* `cglib:cglib-nodep` and `cglib:cglib`
+
+=== Detecting conflicts
+
+```kotlin
+include::../../../../demos/conflicts/buildSrc/src/main/kotlin/loggers.kt[tags=detect_conflicts]
+```
+
+=== Detecting conflicts
+
+```kotlin
+include::../../../../demos/conflicts/buildSrc/src/main/kotlin/loggers.kt[tags=rules]
+```
+
+=== Selecting a module over another one
+
+* Uses _dependency substitution_
+* This effectively _replaces_ one module with another
+
+```kotlin
+include::../../../../demos/conflicts/buildSrc/src/main/kotlin/loggers.kt[tags=preference]
+```

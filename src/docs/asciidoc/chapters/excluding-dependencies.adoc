@@ -1,0 +1,98 @@
+[background-color="#01303a"]
+== Excluding dependencies
+
+=== What is it?
+
+* An option for consumers to prune transitive sections of the graph
+* Maven and Gradle have different handling of exclusions
+
+=== Maven `exclusion`
+
+* With Maven if a dependency is excluded on a given _edge_, it is excluded for the whole graph
+
+[ditaa, "asciidoctor-diagram-process3", height=80%]
+....
+          +------+  excludes C     +---+      +---+
+          | Root | --------------> | B | ---> | C |
+          |      |                 +---+      +---+
+          |      |
+          |      |      +---+      +---+      +---+
+          |      | ---> | E | ---> | B | ---> | C |
+          +------+      +---+      +---+      +---+
+....
+
+`C` is excluded in Maven
+
+=== Gradle `exclude`
+
+* With Gradle _all paths_ need to exclude for a dependency to be excluded
+
+[ditaa, "asciidoctor-diagram-process4", height=80%]
+....
+           +------+  excludes C    +---+      +---+
+           | Root | -------------> | B | ---> | C |
+           |      |                +---+      +---+
+           |      |
+           |      |  excludes C    +---+      +---+      +---+
+           |      | -------------> | E | ---> | B | ---> | C |
+           +------+                +---+      +---+      +---+
+....
+
+`C` is excluded
+
+=== Configuration level `exclude`
+
+* A dependency is _many times_ and _deep_ into the dependency graph and you don't need it
+* Exclude it on _all paths_
+
+```groovy
+configurations.all {
+   exclude group:'commons-logging', module:'commons-logging'
+}
+```
+
+However:
+
+* Leaks to downstream consumers
+* Even worse: added to _all_ first level dependencies at publication
+
+=== When to use excludes: last resort
+
+* Semantics should be: "I don't use this library that this module says it needs"
+* Should be limited to cases where the module _actually needs it_ but your execution paths don't
+
+```kotlin
+include::../../../../demos/conflicts/build.gradle.kts.final[tags=exclude]
+
+// ...
+
+include::../../../../demos/conflicts/buildSrc/src/main/kotlin/fixtures.kt[tags=exclude]
+```
+
+=== A word about `forcing`
+
+* Forcing dependencies is _not recommended_
+* Behavior can be non reproducible (ordering issues in case of competing forces)
+* Use it _only_ if you don't have consumers
+* But prefer _resolution rules_
+
+=== Disabling transitive resolution
+
+* Sometimes you don't care about transitivity
+* e.g: download a set of files
+
+```kotlin
+configurations {
+   myFiles {
+      transitive = false
+   }
+}
+
+// ...
+
+tasks {
+   downloadFiles {
+      from configurations["myFiles"]
+   }
+}
+```
